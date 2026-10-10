@@ -9,15 +9,19 @@ const Notice = require('./models/Notice');
 const LostFound = require('./models/LostFound');
 const Attendance = require('./models/Attendance');
 
-async function seed() {
-    await connectDB();
+async function seed({ clear = true } = {}) {
+    if (mongoose.connection.readyState !== 1) {
+        await connectDB();
+    }
     console.log('🌱 Seeding database...\n');
 
     // ── Clear existing data ──
-    await Promise.all([
-        User.deleteMany({}), Book.deleteMany({}), Notice.deleteMany({}),
-        LostFound.deleteMany({}), Attendance.deleteMany({})
-    ]);
+    if (clear) {
+        await Promise.all([
+            User.deleteMany({}), Book.deleteMany({}), Notice.deleteMany({}),
+            LostFound.deleteMany({}), Attendance.deleteMany({})
+        ]);
+    }
 
     // ── 1. Users ──
     const hashedPw = await bcrypt.hash('password123', 12);
@@ -105,8 +109,15 @@ async function seed() {
     console.log('   Admin:     admin@campus.edu / password123');
     console.log('   Librarian: librarian@campus.edu / password123');
     console.log('   Alumni:    priya@alumni.edu / password123');
-
-    process.exit(0);
 }
 
-seed().catch(err => { console.error('Seed error:', err); process.exit(1); });
+module.exports = { seed };
+
+if (require.main === module) {
+    seed().then(() => {
+        process.exit(0);
+    }).catch(err => {
+        console.error('Seed error:', err);
+        process.exit(1);
+    });
+}

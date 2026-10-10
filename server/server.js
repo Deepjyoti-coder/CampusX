@@ -6,10 +6,6 @@ const path = require('node:path');
 const connectDB = require('./config/db');
 const { getRedisClient } = require('./config/redis');
 
-// Connect to MongoDB
-connectDB();
-getRedisClient();
-
 const app = express();
 
 // Middleware
@@ -60,6 +56,17 @@ app.get('/api/health', (req, res) => {
 
 // ── Start ───────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 CampusAI server running on http://localhost:${PORT}`);
-});
+
+const startServer = async () => {
+    try {
+        await connectDB();
+        getRedisClient();
+        app.listen(PORT, () => {
+            console.log(`🚀 CampusAI server running on http://localhost:${PORT}`);
+        });
+    } catch (err) {
+        console.error('Fatal startup error:', err);
+    }
+};
+
+startServer();

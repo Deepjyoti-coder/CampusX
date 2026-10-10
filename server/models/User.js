@@ -41,7 +41,6 @@ userSchema.methods.isLocked = function () {
     return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 
 module.exports = mongoose.model('User', userSchema);
