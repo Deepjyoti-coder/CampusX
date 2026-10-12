@@ -42,6 +42,9 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/career', require('./routes/career'));
 app.use('/api/mentorship', require('./routes/mentorship'));
 app.use('/api/alumni', require('./routes/alumni'));
+app.use('/api/departments', require('./routes/departments'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/translate', require('./routes/translate'));
 
@@ -55,13 +58,26 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── Start ───────────────────────────────────────────────────
+const http = require('node:http');
+const { Server } = require('socket.io');
+const { setIO } = require('./realtime');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: true,
+        credentials: true
+    }
+});
+setIO(io);
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
         await connectDB();
         getRedisClient();
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`🚀 CampusAI server running on http://localhost:${PORT}`);
         });
     } catch (err) {

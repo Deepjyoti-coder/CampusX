@@ -39,6 +39,21 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-label">Modules</div>
+                    <div class="nav-item" onclick="switchTab('updates',this)" id="navUpdates">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        Campus Updates
+                        <span class="nav-badge" id="navUpdatesBadge">New</span>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('lostfound',this)" id="navLostFound">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                        Lost & Found
+                    </div>
                     <div class="nav-item" onclick="switchTab('library',this)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
@@ -653,8 +668,8 @@
                     <div class="grid grid-12">
                         <div class="card col-4" style="text-align:center">
                             <div class="user-avatar"
-                                style="width:80px;height:80px;font-size:2rem;margin:0 auto var(--sp-4)">AD</div>
-                            <h3 style="color:var(--navy)">Arya Das</h3>
+                                style="width:80px;height:80px;font-size:2rem;margin:0 auto var(--sp-4)">DD</div>
+                            <h3 style="color:var(--navy)">Deep Das</h3>
                             <p class="text-sm text-gray" style="margin-bottom:var(--sp-3)">Computer Science · 3rd
                                 Year<br />CGPA: 8.7 / 10 · Graduating 2027</p>
                             <div style="display:flex;gap:var(--sp-2);justify-content:center;margin-bottom:var(--sp-4)">
@@ -1073,17 +1088,499 @@
                 </div>
             </div>
 
+            <!-- ══════════ CAMPUS UPDATES TAB ══════════ -->
+            <div class="page-content tab-panel" id="tab-updates">
+                <div class="page-header flex justify-between items-center" style="flex-wrap:wrap;gap:var(--sp-3)">
+                    <div>
+                        <h1 class="page-title">Campus Updates</h1>
+                        <p class="page-subtitle" id="updatesSubtitle">Centralized smart notices, circulars, and university event management</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary btn-sm" onclick="loadCampusUpdates()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats summary banner -->
+                <div class="updates-stat-banner">
+                    <div class="stat-banner-card">
+                        <div class="stat-banner-icon" style="background:#EFF6FF;color:#2563EB">📢</div>
+                        <div>
+                            <div class="stat-banner-title">Active Notices</div>
+                            <div class="stat-banner-val" id="statActiveNotices">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-banner-card">
+                        <div class="stat-banner-icon" style="background:#ECFDF5;color:#059669">📅</div>
+                        <div>
+                            <div class="stat-banner-title">Upcoming Events</div>
+                            <div class="stat-banner-val" id="statUpcomingEvents">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-banner-card">
+                        <div class="stat-banner-icon" style="background:#FEF3C7;color:#D97706">⏳</div>
+                        <div>
+                            <div class="stat-banner-title">Registration Deadlines</div>
+                            <div class="stat-banner-val" id="statDeadlinesCount">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-banner-card">
+                        <div class="stat-banner-icon" style="background:#F3E8FF;color:#7C3AED">🏛️</div>
+                        <div>
+                            <div class="stat-banner-title">Department Updates</div>
+                            <div class="stat-banner-val" id="statDeptUpdates">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation: Notices vs Events -->
+                <div class="updates-subnav">
+                    <button class="updates-subnav-btn active" id="btnSubtabNotices" onclick="switchUpdatesSubTab('notices')">
+                        <span>📢</span> Smart Notices
+                    </button>
+                    <button class="updates-subnav-btn" id="btnSubtabEvents" onclick="switchUpdatesSubTab('events')">
+                        <span>📅</span> Campus Events
+                    </button>
+                </div>
+
+                <!-- ── VIEW 1: NOTICES ── -->
+                <div id="updatesNoticesView">
+                    <!-- Personalized Feed Pills -->
+                    <div class="filter-pills-wrap">
+                        <button class="filter-pill active" data-view="for_you" onclick="selectNoticeFeedView('for_you', this)">
+                            ✨ For You (Personalized)
+                        </button>
+                        <button class="filter-pill" data-view="my_dept" onclick="selectNoticeFeedView('my_dept', this)">
+                            🏛️ My Department (CSE)
+                        </button>
+                        <button class="filter-pill" data-view="all" onclick="selectNoticeFeedView('all', this)">
+                            🏢 All Departments
+                        </button>
+                        <button class="filter-pill" data-view="university" onclick="selectNoticeFeedView('university', this)">
+                            🌐 University-wide
+                        </button>
+                        <button class="filter-pill" data-view="saved" onclick="selectNoticeFeedView('saved', this)">
+                            🔖 Saved Notices
+                        </button>
+                    </div>
+
+                    <!-- Search and filters toolbar -->
+                    <div class="card" style="padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);background:white">
+                        <div class="grid grid-12" style="gap:var(--sp-3);align-items:center">
+                            <div class="col-5">
+                                <input type="text" class="form-input" id="noticeSearchInput" placeholder="🔍 Search circulars, exams, placement drives..." oninput="handleNoticeSearch()" />
+                            </div>
+                            <div class="col-3">
+                                <select class="form-input form-select" id="noticeDeptFilter" onchange="filterNotices()">
+                                    <option value="All">All Departments</option>
+                                    <option value="Computer Science and Engineering">Computer Science (CSE)</option>
+                                    <option value="Information Technology">Information Tech (IT)</option>
+                                    <option value="Electronics and Communication">Electronics (ECE)</option>
+                                    <option value="Mechanical Engineering">Mechanical (ME)</option>
+                                    <option value="Civil Engineering">Civil (CE)</option>
+                                    <option value="Electrical Engineering">Electrical (EE)</option>
+                                    <option value="Management Studies">Management (MBA)</option>
+                                    <option value="University-wide">University-wide</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <select class="form-input form-select" id="noticeCategoryFilter" onchange="filterNotices()">
+                                    <option value="All">All Categories</option>
+                                    <option value="Academic">Academic</option>
+                                    <option value="Examination">Examination</option>
+                                    <option value="Placement">Placement</option>
+                                    <option value="Workshop">Workshop</option>
+                                    <option value="Hackathon">Hackathon</option>
+                                    <option value="Scholarship">Scholarship</option>
+                                    <option value="Cultural event">Cultural</option>
+                                    <option value="Sports">Sports</option>
+                                    <option value="Administrative">Administrative</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <select class="form-input form-select" id="noticePriorityFilter" onchange="filterNotices()">
+                                    <option value="All">All Priorities</option>
+                                    <option value="urgent">🚨 Urgent</option>
+                                    <option value="high">⚠️ High</option>
+                                    <option value="normal">Normal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pinned / Urgent Notice Alert Banner -->
+                    <div id="pinnedNoticeBannerContainer"></div>
+
+                    <!-- Notice Cards Grid -->
+                    <div class="notice-grid" id="noticeGrid"></div>
+                </div>
+
+                <!-- ── VIEW 2: EVENTS ── -->
+                <div id="updatesEventsView" style="display:none">
+                    <!-- Event Filter Pills -->
+                    <div class="filter-pills-wrap">
+                        <button class="filter-pill active" data-event-filter="all" onclick="selectEventFilter('all', this)">
+                            🌟 All Upcoming Events
+                        </button>
+                        <button class="filter-pill" data-event-filter="registered" onclick="selectEventFilter('registered', this)">
+                            🎟️ My Registered Events
+                        </button>
+                        <button class="filter-pill" data-event-filter="Hackathon" onclick="selectEventFilter('Hackathon', this)">
+                            ⚡ Hackathons & Contests
+                        </button>
+                        <button class="filter-pill" data-event-filter="Workshop" onclick="selectEventFilter('Workshop', this)">
+                            🛠️ Technical Workshops
+                        </button>
+                        <button class="filter-pill" data-event-filter="saved" onclick="selectEventFilter('saved', this)">
+                            🔖 Saved Events
+                        </button>
+                    </div>
+
+                    <!-- Event Grid -->
+                    <div class="event-grid" id="eventGrid"></div>
+                </div>
+            </div>
+
+            <!-- ══════════ LOST & FOUND TAB ══════════ -->
+            <div class="page-content tab-panel" id="tab-lostfound">
+                <div class="page-header flex justify-between items-center" style="flex-wrap:wrap;gap:var(--sp-3)">
+                    <div>
+                        <h1 class="page-title">Campus Lost & Found</h1>
+                        <p class="page-subtitle">AI-assisted semantic matching and secure ownership recovery</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary btn-sm" onclick="loadLostFoundItems()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hero Action Buttons -->
+                <div class="lf-hero-actions">
+                    <div class="lf-action-card lost" onclick="openReportModal('lost')">
+                        <div class="lf-action-icon">🚨</div>
+                        <div>
+                            <h3 style="color:#9F1239;font-size:var(--text-lg);font-weight:800;margin-bottom:4px">I Lost Something</h3>
+                            <p style="color:#881337;font-size:var(--text-xs);margin:0;line-height:1.4">Report missing items with key details. Our AI matching engine will automatically scan campus reports and notify you of matches.</p>
+                        </div>
+                    </div>
+                    <div class="lf-action-card found" onclick="openReportModal('found')">
+                        <div class="lf-action-icon">✨</div>
+                        <div>
+                            <h3 style="color:#065F46;font-size:var(--text-lg);font-weight:800;margin-bottom:4px">I Found Something</h3>
+                            <p style="color:#064E3B;font-size:var(--text-xs);margin:0;line-height:1.4">Help a fellow student! Register found belongings and deposit at Campus Security (Room 104) for safe verification.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Safety Protocol Banner -->
+                <div class="security-alert-box">
+                    <span style="font-size:20px">🛡️</span>
+                    <div>
+                        <strong style="color:var(--navy)">Official Campus Recovery Protocol:</strong>
+                        Valuable belongings, electronics, wallets, and student ID cards should be deposited at the <strong>Campus Security Desk (Central Block Room 104)</strong>. Never arrange recovery in isolated areas.
+                    </div>
+                </div>
+
+                <!-- Feed Navigation & Filters -->
+                <div class="filter-pills-wrap">
+                    <button class="filter-pill active" data-lf-type="all" onclick="selectLFTypeFilter('all', this)">
+                        📦 All Campus Items
+                    </button>
+                    <button class="filter-pill" data-lf-type="lost" onclick="selectLFTypeFilter('lost', this)">
+                        🔍 Lost Belongings
+                    </button>
+                    <button class="filter-pill" data-lf-type="found" onclick="selectLFTypeFilter('found', this)">
+                        ✨ Found Items
+                    </button>
+                    <button class="filter-pill" data-lf-type="my_reports" onclick="selectLFTypeFilter('my_reports', this)">
+                        📋 My Reports
+                    </button>
+                </div>
+
+                <!-- Search & Filters Toolbar -->
+                <div class="card" style="padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);background:white">
+                    <div class="grid grid-12" style="gap:var(--sp-3);align-items:center">
+                        <div class="col-5">
+                            <input type="text" class="form-input" id="lfSearchInput" placeholder="🔍 Search by item name, location, brand, color..." oninput="handleLFSearch()" />
+                        </div>
+                        <div class="col-3">
+                            <select class="form-input form-select" id="lfCategoryFilter" onchange="filterLFItems()">
+                                <option value="All Categories">All Categories</option>
+                                <option value="Electronics">Electronics & Chargers</option>
+                                <option value="ID & Cards">ID Cards & Wallets</option>
+                                <option value="Bags & Wallets">Bags & Backpacks</option>
+                                <option value="Keys">Keys</option>
+                                <option value="Books & Stationery">Books & Stationery</option>
+                                <option value="Clothing & Accessories">Clothing & Accessories</option>
+                                <option value="Jewellery & Watches">Watches & Jewellery</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-2">
+                            <select class="form-input form-select" id="lfLocationFilter" onchange="filterLFItems()">
+                                <option value="">All Locations</option>
+                                <option value="Library">Library</option>
+                                <option value="Cafeteria">Cafeteria</option>
+                                <option value="Lab">Lab</option>
+                                <option value="Sports">Sports Complex</option>
+                                <option value="Auditorium">Auditorium</option>
+                            </select>
+                        </div>
+                        <div class="col-2">
+                            <select class="form-input form-select" id="lfStatusFilter" onchange="filterLFItems()">
+                                <option value="All">All Statuses</option>
+                                <option value="open">Open</option>
+                                <option value="potential_match">⚡ AI Match</option>
+                                <option value="claim_pending">Claim Pending</option>
+                                <option value="returned">Returned</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lost & Found Items Grid -->
+                <div class="lf-grid" id="lfGrid"></div>
+            </div>
+
             <!-- ══════════ NOTIFICATIONS TAB ══════════ -->
             <div class="page-content tab-panel" id="tab-notifications">
-                <div class="page-header">
-                    <h1 class="page-title">Notifications</h1>
+                <div class="page-header flex justify-between items-center" style="margin-bottom:var(--sp-4)">
+                    <div>
+                        <h1 class="page-title">Notification Center</h1>
+                        <p class="page-subtitle">Real-time alerts for circulars, event deadlines, and lost & found matches</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="markAllNotificationsAsRead()">Mark all as read</button>
                 </div>
-                <div class="card">
+                <div class="card" style="padding:var(--sp-2)">
                     <div id="notifList"></div>
                 </div>
             </div>
         </div><!-- /main-content -->
     </div><!-- /app-shell -->
+
+    <!-- ── Modals for Campus Updates & LostFound ── -->
+    <!-- Notice Details Modal -->
+    <div class="modal-overlay" id="noticeDetailsModal">
+        <div class="modal" style="max-width:650px">
+            <div class="modal-header">
+                <div class="modal-title" id="ndModalTitle">Notice Details</div>
+                <button class="modal-close" onclick="closeModal('noticeDetailsModal')">✕</button>
+            </div>
+            <div class="modal-body" id="ndModalBody"></div>
+            <div class="modal-footer" id="ndModalFooter"></div>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div class="modal-overlay" id="eventDetailsModal">
+        <div class="modal" style="max-width:650px">
+            <div class="modal-header">
+                <div class="modal-title" id="edModalTitle">Event Details</div>
+                <button class="modal-close" onclick="closeModal('eventDetailsModal')">✕</button>
+            </div>
+            <div class="modal-body" id="edModalBody"></div>
+            <div class="modal-footer" id="edModalFooter"></div>
+        </div>
+    </div>
+
+    <!-- Report Lost Modal -->
+    <div class="modal-overlay" id="reportLostModal">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <div class="modal-title">🚨 Report a Lost Item</div>
+                <button class="modal-close" onclick="closeModal('reportLostModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="reportLostForm" onsubmit="submitLostReport(event)">
+                    <div class="form-group">
+                        <label class="form-label">Item Name *</label>
+                        <input type="text" class="form-input" id="lostItemName" placeholder="e.g. Sony WH-1000XM4 Noise Cancelling Headphones" required />
+                    </div>
+                    <div class="grid grid-2" style="gap:var(--sp-3)">
+                        <div class="form-group">
+                            <label class="form-label">Category *</label>
+                            <select class="form-input form-select" id="lostItemCategory">
+                                <option>Electronics</option>
+                                <option>ID & Cards</option>
+                                <option>Bags & Wallets</option>
+                                <option>Keys</option>
+                                <option>Books & Stationery</option>
+                                <option>Clothing & Accessories</option>
+                                <option>Jewellery & Watches</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Color / Finish</label>
+                            <input type="text" class="form-input" id="lostItemColor" placeholder="e.g. Matte Black" />
+                        </div>
+                    </div>
+                    <div class="grid grid-2" style="gap:var(--sp-3)">
+                        <div class="form-group">
+                            <label class="form-label">Date Lost *</label>
+                            <input type="date" class="form-input" id="lostItemDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Approximate Time</label>
+                            <input type="text" class="form-input" id="lostItemTime" placeholder="e.g. 3:30 PM (After Lab)" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Known Location *</label>
+                        <input type="text" class="form-input" id="lostItemLocation" placeholder="e.g. Central Library 2nd Floor Silent Zone, Table 12" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Item Description & Identifiable Characteristics *</label>
+                        <textarea class="form-input" rows="3" id="lostItemDesc" placeholder="Describe the item, including scratches, distinctive marks, stickers, case color, etc." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact Preference</label>
+                        <select class="form-input form-select" id="lostItemContactPref">
+                            <option value="in_app">In-App Notification & Verified Chat</option>
+                            <option value="security_office">Direct to Campus Security Desk (Room 104)</option>
+                            <option value="email">University Email</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer" style="padding:0;margin-top:var(--sp-4)">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('reportLostModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubmitLost">Submit Lost Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Found Modal -->
+    <div class="modal-overlay" id="reportFoundModal">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <div class="modal-title">✨ Report a Found Item</div>
+                <button class="modal-close" onclick="closeModal('reportFoundModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="security-alert-box" style="margin-bottom:var(--sp-3)">
+                    <span>🔒</span>
+                    <div>
+                        <strong>Privacy Safeguard:</strong> Do NOT disclose confidential details (e.g. ID card numbers, full card numbers). Keep secret marks for owner verification!
+                    </div>
+                </div>
+                <form id="reportFoundForm" onsubmit="submitFoundReport(event)">
+                    <div class="form-group">
+                        <label class="form-label">Item Title / Name *</label>
+                        <input type="text" class="form-input" id="foundItemName" placeholder="e.g. Dark Over-Ear Wireless Headset" required />
+                    </div>
+                    <div class="grid grid-2" style="gap:var(--sp-3)">
+                        <div class="form-group">
+                            <label class="form-label">Category *</label>
+                            <select class="form-input form-select" id="foundItemCategory">
+                                <option>Electronics</option>
+                                <option>ID & Cards</option>
+                                <option>Bags & Wallets</option>
+                                <option>Keys</option>
+                                <option>Books & Stationery</option>
+                                <option>Clothing & Accessories</option>
+                                <option>Jewellery & Watches</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Color</label>
+                            <input type="text" class="form-input" id="foundItemColor" placeholder="e.g. Black / Dark Gray" />
+                        </div>
+                    </div>
+                    <div class="grid grid-2" style="gap:var(--sp-3)">
+                        <div class="form-group">
+                            <label class="form-label">Date Found *</label>
+                            <input type="date" class="form-input" id="foundItemDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location Found *</label>
+                            <input type="text" class="form-input" id="foundItemLocation" placeholder="e.g. Library 2nd Floor Reading Tables" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description (Public Preview) *</label>
+                        <textarea class="form-input" rows="3" id="foundItemDesc" placeholder="General description. Do not reveal private passwords, IDs, or internal contents." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Current Holding Location *</label>
+                        <select class="form-input form-select" id="foundHoldingLocation">
+                            <option value="Campus Security Office Room 104">Campus Security Central Office (Room 104)</option>
+                            <option value="Library Front Desk">Central Library Circulation Desk</option>
+                            <option value="Department Office">Department Office / HOD Desk</option>
+                            <option value="With Finder">Currently in my custody (arrange safe handover)</option>
+                        </select>
+                    </div>
+                    <div class="form-group flex items-center gap-2" style="margin-bottom:var(--sp-3)">
+                        <input type="checkbox" id="foundHandedToSecurity" />
+                        <label for="foundHandedToSecurity" class="text-xs text-gray" style="cursor:pointer">I have deposited / plan to deposit this item at Campus Security Desk</label>
+                    </div>
+                    <div class="modal-footer" style="padding:0;margin-top:var(--sp-4)">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('reportFoundModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubmitFound">Submit Found Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ownership Claim Modal -->
+    <div class="modal-overlay" id="claimItemModal">
+        <div class="modal" style="max-width:560px">
+            <div class="modal-header">
+                <div class="modal-title">📝 Verify Ownership & Claim Item</div>
+                <button class="modal-close" onclick="closeModal('claimItemModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="security-alert-box" style="margin-bottom:var(--sp-3)">
+                    <span>🛡️</span>
+                    <div>
+                        <strong>Security Verification Required:</strong> To prevent fraudulent claims, describe unique characteristics only the true owner would know (e.g., serial number, phone wallpaper, inside pouch contents, or unique scratches).
+                    </div>
+                </div>
+                <form id="claimItemForm" onsubmit="submitItemClaim(event)">
+                    <input type="hidden" id="claimItemId" />
+                    <div class="form-group">
+                        <label class="form-label">Item Claiming</label>
+                        <input type="text" class="form-input" id="claimItemTitleDisplay" readonly style="background:#F8FAFC" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Secret Proof of Ownership *</label>
+                        <textarea class="form-input" rows="4" id="claimProofDetails" placeholder="Describe confidential identifiers: e.g. 'Serial number ends in 8421, inside the case has a gray audio jack cable, slight nick on the left hinge.'" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact Information / University Phone</label>
+                        <input type="text" class="form-input" id="claimContactInfo" placeholder="e.g. +91 98765 43210 / deep@campus.edu" required />
+                    </div>
+                    <div class="modal-footer" style="padding:0;margin-top:var(--sp-4)">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('claimItemModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubmitClaim">Submit Verification Claim</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Potential Matches Modal -->
+    <div class="modal-overlay" id="aiMatchesModal">
+        <div class="modal" style="max-width:700px">
+            <div class="modal-header">
+                <div class="modal-title flex items-center gap-2">
+                    <span>⚡ AI-Assisted Potential Matches</span>
+                    <span class="badge badge-purple" style="font-size:11px">Layered Match Engine</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('aiMatchesModal')">✕</button>
+            </div>
+            <div class="modal-body" id="aiMatchesModalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('aiMatchesModal')">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ── Modals ── -->
     <div class="modal-overlay" id="addSkillModal">

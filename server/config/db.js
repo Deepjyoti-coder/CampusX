@@ -6,12 +6,14 @@ let memoryServer = null;
 const autoSeedIfEmpty = async () => {
     try {
         const User = require('../models/User');
-        const userCount = await User.countDocuments();
-        if (userCount === 0) {
-            console.log('🌱 Database is empty. Seeding demo accounts and initial data...');
+        const Department = require('../models/Department');
+        const deepUser = await User.findOne({ email: 'deep@campus.edu' });
+        const deptCount = await Department.countDocuments();
+        if (!deepUser || deptCount === 0) {
+            console.log('🌱 Refreshing database with Deep Das, departments, smart notices & events...');
             const { seed } = require('../seed');
-            await seed({ clear: false });
-            console.log('✅ Demo accounts seeded successfully!');
+            await seed({ clear: true });
+            console.log('✅ Demo accounts & modules seeded successfully!');
         }
     } catch (err) {
         console.error('⚠️ Auto-seed check error:', err.message);

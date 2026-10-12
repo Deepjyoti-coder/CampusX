@@ -7,6 +7,7 @@
     <title>CampusAI — Admin & Placement Panel</title>
     <link rel="stylesheet" href="css/global.css" />
     <link rel="stylesheet" href="css/admin.css" />
+    <link rel="stylesheet" href="css/student.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
@@ -69,6 +70,27 @@
                             <path d="M12 6v6l4 2" />
                         </svg>
                         Knowledge Base
+                    </div>
+                    <div class="nav-item" onclick="switchTab('publishing',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        Publishing Portal
+                    </div>
+                    <div class="nav-item" onclick="switchTab('moderation',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                        Lost & Found Moderation
+                    </div>
+                    <div class="nav-item" onclick="switchTab('departments',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                        Departments & Audit
                     </div>
                     <div class="nav-item" onclick="switchTab('users',this)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -584,6 +606,296 @@
                     </table>
                 </div>
             </div>
+
+            <!-- ═══ PUBLISHING PORTAL TAB ═══ -->
+            <div class="page-content tab-panel" id="tab-publishing">
+                <div class="admin-hero" style="background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%);">
+                    <div style="position:relative; z-index:1;">
+                        <div class="admin-hero-title">📢 Notice & Event Publishing Portal</div>
+                        <div class="admin-hero-sub">Multi-Department Smart Announcements, Capacity Controls & AI Writing Assistant</div>
+                        <div class="alumni-stat-strip" style="margin-top:var(--sp-5)">
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminActiveNoticesCount">0</div>
+                                <div class="alumni-stat-lbl">Active Notices</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminDraftNoticesCount">0</div>
+                                <div class="alumni-stat-lbl">Drafts</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminUpcomingEventsCount">0</div>
+                                <div class="alumni-stat-lbl">Campus Events</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminTotalRegsCount">0</div>
+                                <div class="alumni-stat-lbl">Total Registrations</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2" style="position:relative; z-index:1; flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="openCreateNoticeModal()" style="background:#4F46E5; border-color:#4F46E5; box-shadow:0 4px 12px rgba(79,70,229,0.35);">
+                            + Publish Notice
+                        </button>
+                        <button class="btn btn-primary" onclick="openCreateEventModal()" style="background:#0D9488; border-color:#0D9488; box-shadow:0 4px 12px rgba(13,148,136,0.35);">
+                            + Create Event
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between" style="margin-bottom:var(--sp-4); flex-wrap:wrap; gap:var(--sp-3);">
+                    <div class="role-filter-tabs" style="margin:0">
+                        <button class="role-filter-btn active" id="filterAllPub" onclick="filterPublishingView('all', this)">All Content</button>
+                        <button class="role-filter-btn" onclick="filterPublishingView('notices', this)">Notices Only</button>
+                        <button class="role-filter-btn" onclick="filterPublishingView('events', this)">Events Only</button>
+                        <button class="role-filter-btn" onclick="filterPublishingView('drafts', this)">Drafts & Pending</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" class="form-input" id="adminPubSearch" placeholder="🔍 Filter published content..." oninput="handleAdminPubSearch(this.value)" style="width:260px;" />
+                        <button class="btn btn-secondary btn-sm" onclick="loadAdminPublishingData()">⟳ Refresh</button>
+                    </div>
+                </div>
+
+                <!-- Notices Management Section -->
+                <div id="adminNoticesSection" style="margin-bottom:var(--sp-6);">
+                    <div class="flex items-center justify-between" style="margin-bottom:var(--sp-3);">
+                        <h3 class="fw-700 text-navy flex items-center gap-2">
+                            <span>📌 Department Notices & Announcements</span>
+                        </h3>
+                    </div>
+                    <div class="card p-0" style="overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Notice Title</th>
+                                    <th>Target Department(s)</th>
+                                    <th>Category</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Author</th>
+                                    <th>Published</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminNoticesTbody">
+                                <tr><td colspan="8" class="text-center text-gray p-4">Loading notices...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Events Management Section -->
+                <div id="adminEventsSection">
+                    <div class="flex items-center justify-between" style="margin-bottom:var(--sp-3);">
+                        <h3 class="fw-700 text-navy flex items-center gap-2">
+                            <span>🎪 Campus Events & Technical Drives</span>
+                        </h3>
+                    </div>
+                    <div class="card p-0" style="overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Event Title</th>
+                                    <th>Department / Club</th>
+                                    <th>Date & Time</th>
+                                    <th>Venue</th>
+                                    <th>Capacity & Regs</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminEventsTbody">
+                                <tr><td colspan="7" class="text-center text-gray p-4">Loading events...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ LOST & FOUND MODERATION TAB ═══ -->
+            <div class="page-content tab-panel" id="tab-moderation">
+                <div class="admin-hero" style="background: linear-gradient(135deg, #881337 0%, #9F1239 50%, #BE123C 100%);">
+                    <div style="position:relative; z-index:1;">
+                        <div class="admin-hero-title">🛡️ Lost & Found Campus Moderation</div>
+                        <div class="admin-hero-sub">Review Ownership Claims, Flag Inappropriate Items & Transfer Valuables to Campus Security</div>
+                        <div class="alumni-stat-strip" style="margin-top:var(--sp-5)">
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminLfTotalCount">0</div>
+                                <div class="alumni-stat-lbl">Total Reports</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminLfPendingClaimsCount">0</div>
+                                <div class="alumni-stat-lbl">Pending Claims</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminLfSecurityCount">0</div>
+                                <div class="alumni-stat-lbl">At Security Office</div>
+                            </div>
+                            <div class="alumni-stat">
+                                <div class="alumni-stat-val" id="adminLfReturnedCount">0</div>
+                                <div class="alumni-stat-lbl">Resolved / Returned</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="security-alert-box" style="margin-bottom:var(--sp-4);">
+                    <span style="font-size:18px;">🔒</span>
+                    <div>
+                        <strong>Confidentiality Protection Active:</strong> Sensitive student identity cards, keys, and wallets have their identifying numbers and verification marks redacted from public student view. Review claims below with strict ownership verification.
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between" style="margin-bottom:var(--sp-4); flex-wrap:wrap; gap:var(--sp-3);">
+                    <div class="role-filter-tabs" style="margin:0">
+                        <button class="role-filter-btn active" onclick="filterModerationView('all', this)">All Items</button>
+                        <button class="role-filter-btn" onclick="filterModerationView('claims', this)">Claims Pending (Attention)</button>
+                        <button class="role-filter-btn" onclick="filterModerationView('lost', this)">Lost Reports</button>
+                        <button class="role-filter-btn" onclick="filterModerationView('found', this)">Found Reports</button>
+                        <button class="role-filter-btn" onclick="filterModerationView('sensitive', this)">Confidential / Valuables</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" class="form-input" id="adminLfSearch" placeholder="🔍 Search reports..." oninput="handleAdminLfSearch(this.value)" style="width:240px;" />
+                        <button class="btn btn-secondary btn-sm" onclick="loadAdminModerationData()">⟳ Refresh</button>
+                    </div>
+                </div>
+
+                <div class="card p-0" style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Details</th>
+                                <th>Type</th>
+                                <th>Location & Date</th>
+                                <th>Reporter / Contact</th>
+                                <th>Security & Holding</th>
+                                <th>Status</th>
+                                <th>Claims</th>
+                                <th>Moderation Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminModerationTbody">
+                            <tr><td colspan="8" class="text-center text-gray p-4">Loading reports...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ DEPARTMENTS & AUDIT TRAIL TAB ═══ -->
+            <div class="page-content tab-panel" id="tab-departments">
+                <div class="grid grid-2" style="gap:var(--sp-5); margin-bottom:var(--sp-6);">
+                    <!-- Department Config Card -->
+                    <div class="card">
+                        <div class="flex items-center justify-between" style="margin-bottom:var(--sp-4);">
+                            <div>
+                                <h3 class="fw-700 text-navy flex items-center gap-2">
+                                    <span>🏢 Configured Departments</span>
+                                </h3>
+                                <div class="text-xs text-gray">Add, rename or deactivate institutional branches</div>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="showModal('addDeptModal')">+ Add Dept</button>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Department Name</th>
+                                        <th>Coordinator</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminDeptsTbody">
+                                    <tr><td colspan="5" class="text-center text-gray p-4">Loading departments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Live System Architecture & Status -->
+                    <div class="card">
+                        <div class="flex items-center justify-between" style="margin-bottom:var(--sp-4);">
+                            <div>
+                                <h3 class="fw-700 text-navy flex items-center gap-2">
+                                    <span>⚙️ AI Engine & Services Health</span>
+                                </h3>
+                                <div class="text-xs text-gray">Smart notices NLP & 3-stage matching status</div>
+                            </div>
+                            <span class="badge badge-teal">All Systems Operational</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:var(--sp-3);">
+                            <div class="flex items-center justify-between p-3" style="background:#F8FAFC; border-radius:var(--radius-md); border:1px solid var(--gray-200);">
+                                <div>
+                                    <div class="fw-600 text-navy">AI Writing Assistant (Gemini / Smart Fallback)</div>
+                                    <div class="text-xs text-gray">Draft from bullets, grammar polish, deadline extractor</div>
+                                </div>
+                                <span class="badge badge-blue">Ready</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3" style="background:#F8FAFC; border-radius:var(--radius-md); border:1px solid var(--gray-200);">
+                                <div>
+                                    <div class="fw-600 text-navy">Layered Matching Engine (3 Stages)</div>
+                                    <div class="text-xs text-gray">Category (25%), Semantic (35%), Zone (20%), Date (10%), Color (10%)</div>
+                                </div>
+                                <span class="badge badge-teal">Active (74% Baseline)</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3" style="background:#F8FAFC; border-radius:var(--radius-md); border:1px solid var(--gray-200);">
+                                <div>
+                                    <div class="fw-600 text-navy">Duplicate Notification Suppression</div>
+                                    <div class="text-xs text-gray">Suppresses identical alerts within 120-minute window</div>
+                                </div>
+                                <span class="badge badge-purple">Enabled</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3" style="background:#F8FAFC; border-radius:var(--radius-md); border:1px solid var(--gray-200);">
+                                <div>
+                                    <div class="fw-600 text-navy">Confidential Item Data Redaction</div>
+                                    <div class="text-xs text-gray">Protects student IDs, wallet details, private contact info</div>
+                                </div>
+                                <span class="badge badge-teal">Secured</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Log Section -->
+                <div class="card p-0">
+                    <div class="p-4 flex items-center justify-between" style="border-bottom:1px solid var(--gray-200); flex-wrap:wrap; gap:var(--sp-3);">
+                        <div>
+                            <h3 class="fw-700 text-navy flex items-center gap-2">
+                                <span>📜 Institutional Audit Trail</span>
+                            </h3>
+                            <div class="text-xs text-gray">Tamper-evident record of administrative publications, approvals & claims</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select class="form-input form-select" id="adminAuditFilter" onchange="loadAdminAuditLogs(this.value)" style="width:180px;">
+                                <option value="">All Actions</option>
+                                <option value="publish_notice">Published Notice</option>
+                                <option value="update_event">Event Updates</option>
+                                <option value="verify_claim">Verified Claim</option>
+                                <option value="moderate_item">Moderation Action</option>
+                                <option value="create_dept">Department CRUD</option>
+                            </select>
+                            <button class="btn btn-secondary btn-sm" onclick="loadAdminAuditLogs()">⟳ Refresh Log</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Administrator / User</th>
+                                    <th>Action</th>
+                                    <th>Resource / Entity</th>
+                                    <th>Details</th>
+                                    <th>IP / Origin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminAuditTbody">
+                                <tr><td colspan="6" class="text-center text-gray p-4">Loading audit logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -649,6 +961,304 @@
                 <button class="btn btn-primary"
                     onclick="closeModal('addUserModal');showToast('User created. Welcome email sent.','success')">Create
                     User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ NOTICE CREATION & PUBLISHING MODAL ═══ -->
+    <div class="modal-overlay" id="createNoticeModal">
+        <div class="modal" style="max-width: 680px;">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">📢 Publish Department Notice</div>
+                    <div style="font-size:var(--text-xs); color:var(--gray-500); margin-top:2px;">Target specific departments, academic batches, and broadcast critical announcements</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('createNoticeModal')">✕</button>
+            </div>
+            <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
+                <form id="adminNoticeForm" onsubmit="handleAdminSubmitNotice(event)">
+                    <div class="form-group">
+                        <label class="form-label">Notice Title *</label>
+                        <input type="text" class="form-input" id="adminNoticeTitle" placeholder="e.g. Mid-Term Examination Schedule & Room Allocations" required />
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Publishing Department / Authority *</label>
+                            <input type="text" class="form-input" id="adminNoticePublishingDept" placeholder="e.g. Dean Academic Affairs / CSE Dept" value="Computer Science & Engineering" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category *</label>
+                            <select class="form-input form-select" id="adminNoticeCategory" required>
+                                <option value="Academic">Academic</option>
+                                <option value="Examination">Examination</option>
+                                <option value="Placement">Placement & Drives</option>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Hackathon">Hackathon</option>
+                                <option value="Competition">Competition</option>
+                                <option value="Internship">Internship</option>
+                                <option value="Scholarship">Scholarship</option>
+                                <option value="Cultural">Cultural</option>
+                                <option value="Sports">Sports</option>
+                                <option value="Administrative">Administrative</option>
+                                <option value="General">General Announcement</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Priority Level *</label>
+                            <select class="form-input form-select" id="adminNoticePriority" required>
+                                <option value="standard">Standard Priority</option>
+                                <option value="low">Low Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="urgent">Urgent Announcement</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target Audience Scope</label>
+                            <select class="form-input form-select" id="adminNoticeAudience" onchange="toggleNoticeAudienceInputs(this.value)">
+                                <option value="department">Selected Departments</option>
+                                <option value="university">University-Wide (All Departments)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="targetDeptsGroup">
+                        <label class="form-label">Target Departments (Select at least one) *</label>
+                        <div id="noticeTargetDeptsList" style="display:flex; flex-wrap:wrap; gap:8px; padding:10px; background:#F8FAFC; border:1px solid var(--gray-200); border-radius:var(--radius-md);">
+                            <!-- Populated dynamically with configured departments -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Eligible Academic Years</label>
+                        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:var(--text-xs); cursor:pointer;"><input type="checkbox" name="targetYear" value="1" checked /> Year 1</label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:var(--text-xs); cursor:pointer;"><input type="checkbox" name="targetYear" value="2" checked /> Year 2</label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:var(--text-xs); cursor:pointer;"><input type="checkbox" name="targetYear" value="3" checked /> Year 3</label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:var(--text-xs); cursor:pointer;"><input type="checkbox" name="targetYear" value="4" checked /> Year 4</label>
+                        </div>
+                    </div>
+
+                    <!-- AI Writing Assistant Box -->
+                    <div style="margin:var(--sp-4) 0; padding:var(--sp-4); background:linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%); border:1px solid #BFDBFE; border-radius:var(--radius-lg);">
+                        <div class="flex items-center justify-between" style="margin-bottom:var(--sp-2);">
+                            <div class="flex items-center gap-2">
+                                <span style="font-size:18px;">✨</span>
+                                <span class="fw-700 text-navy" style="font-size:var(--text-sm);">AI Notice Writing Assistant</span>
+                                <span class="badge badge-blue" style="font-size:10px;">NLP Engine Active</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray" style="margin-bottom:var(--sp-2);">Enter raw bullet points or notes to automatically draft, improve grammar, suggest titles, or extract dates.</div>
+                        <input type="text" class="form-input" id="adminNoticeAiBullets" placeholder="e.g. Exam starting 15th march, 10am to 1pm, Hall A and B, bring admit card, no phones allowed" style="margin-bottom:8px; background:white;" />
+                        <div class="flex gap-2" style="flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminNoticeAi('bullets_to_notice')">✨ Draft from Bullets</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminNoticeAi('polish')">✨ Polish Grammar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminNoticeAi('suggest_title')">✨ Suggest Title</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminNoticeAi('extract_dates')">✨ Extract Dates</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notice Description & Details *</label>
+                        <textarea class="form-input" id="adminNoticeContent" rows="6" placeholder="Enter complete notice text, instructions, and schedule..." required></textarea>
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Registration / External Link (Optional)</label>
+                            <input type="url" class="form-input" id="adminNoticeLink" placeholder="https://forms.gle/... or portal URL" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Attachment Document URL (Optional)</label>
+                            <input type="text" class="form-input" id="adminNoticeAttachment" placeholder="e.g. /docs/exam_schedule.pdf" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4" style="margin-top:var(--sp-2); padding:var(--sp-3); background:#F8FAFC; border-radius:var(--radius-md);">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:var(--text-xs); cursor:pointer;">
+                            <input type="checkbox" id="adminNoticePinned" /> <strong>Pin this notice to top of feed</strong>
+                        </label>
+                    </div>
+
+                    <div class="modal-footer" style="padding:var(--sp-4) 0 0 0; margin-top:var(--sp-4);">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createNoticeModal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary" onclick="previewNoticeFromModal()">👁️ Preview</button>
+                        <button type="button" class="btn btn-secondary" onclick="saveNoticeAsDraft()">💾 Save Draft</button>
+                        <button type="submit" class="btn btn-primary">🚀 Publish Notice</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ NOTICE PREVIEW MODAL ═══ -->
+    <div class="modal-overlay" id="previewNoticeModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title">👁️ Notice Live Preview</div>
+                <button class="modal-close" onclick="closeModal('previewNoticeModal')">✕</button>
+            </div>
+            <div class="modal-body" id="previewNoticeBody">
+                <!-- Rendered dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('previewNoticeModal')">Back to Editor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ EVENT CREATION MODAL ═══ -->
+    <div class="modal-overlay" id="createEventModal">
+        <div class="modal" style="max-width: 680px;">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">🎪 Create Campus Event / Technical Drive</div>
+                    <div style="font-size:var(--text-xs); color:var(--gray-500); margin-top:2px;">Publish workshops, hackathons, guest lectures with strict capacity limits & calendar sync</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('createEventModal')">✕</button>
+            </div>
+            <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
+                <form id="adminEventForm" onsubmit="handleAdminSubmitEvent(event)">
+                    <div class="form-group">
+                        <label class="form-label">Event Title *</label>
+                        <input type="text" class="form-input" id="adminEventTitle" placeholder="e.g. AI & Full-Stack Innovation Hackathon 2026" required />
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Organizing Department / Club *</label>
+                            <input type="text" class="form-input" id="adminEventDept" placeholder="e.g. CSE Department & AI Society" value="Computer Science & Engineering" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Event Category *</label>
+                            <select class="form-input form-select" id="adminEventCategory" required>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Hackathon">Hackathon</option>
+                                <option value="Technical Competition">Technical Competition</option>
+                                <option value="Guest Lecture">Guest Lecture</option>
+                                <option value="Seminar">Seminar</option>
+                                <option value="Cultural">Cultural Event</option>
+                                <option value="Sports">Sports Meet</option>
+                                <option value="Placement Drive">Placement Drive</option>
+                                <option value="Career Fair">Career Fair</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-3" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Event Date *</label>
+                            <input type="date" class="form-input" id="adminEventDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Start Time *</label>
+                            <input type="time" class="form-input" id="adminEventStartTime" value="10:00" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Time *</label>
+                            <input type="time" class="form-input" id="adminEventEndTime" value="16:00" required />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Venue / Meeting Link *</label>
+                            <input type="text" class="form-input" id="adminEventVenue" placeholder="e.g. Main Auditorium / Lab 3" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Registration Capacity Limit *</label>
+                            <input type="number" class="form-input" id="adminEventCapacity" placeholder="e.g. 150" min="1" value="150" required />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2" style="gap:var(--sp-4);">
+                        <div class="form-group">
+                            <label class="form-label">Registration Deadline</label>
+                            <input type="date" class="form-input" id="adminEventDeadline" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Eligibility Criteria</label>
+                            <input type="text" class="form-input" id="adminEventEligibility" placeholder="e.g. Open to all B.Tech / MCA Students" value="Open to all students" />
+                        </div>
+                    </div>
+
+                    <!-- AI Event Assistant -->
+                    <div style="margin:var(--sp-4) 0; padding:var(--sp-4); background:linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%); border:1px solid #BFDBFE; border-radius:var(--radius-lg);">
+                        <div class="flex items-center justify-between" style="margin-bottom:var(--sp-2);">
+                            <div class="flex items-center gap-2">
+                                <span style="font-size:18px;">✨</span>
+                                <span class="fw-700 text-navy" style="font-size:var(--text-sm);">AI Event Description & Caption Assistant</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2" style="flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminEventAi('generate_event')">✨ Generate Description</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminEventAi('social_caption')">✨ Generate Social Caption</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Event Description & Agendas *</label>
+                        <textarea class="form-input" id="adminEventDescription" rows="5" placeholder="Key details, speakers, agenda, prizes, prerequisites..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Poster Image URL (Optional)</label>
+                        <input type="url" class="form-input" id="adminEventPoster" placeholder="https://images.unsplash.com/photo-... or local URL" />
+                    </div>
+
+                    <div class="modal-footer" style="padding:var(--sp-4) 0 0 0; margin-top:var(--sp-4);">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createEventModal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary" onclick="saveEventAsDraft()">💾 Save Draft</button>
+                        <button type="submit" class="btn btn-primary">🚀 Publish Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ CLAIM REVIEW & VERIFICATION MODAL ═══ -->
+    <div class="modal-overlay" id="reviewClaimModal">
+        <div class="modal" style="max-width: 620px;">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">🛡️ Verify Ownership Claim</div>
+                    <div style="font-size:var(--text-xs); color:var(--gray-500); margin-top:2px;">Compare claimant's confidential proof with report details before handing over item</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('reviewClaimModal')">✕</button>
+            </div>
+            <div class="modal-body" id="reviewClaimModalBody">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ADD DEPARTMENT MODAL ═══ -->
+    <div class="modal-overlay" id="addDeptModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🏢 Configure New Department</div>
+                <button class="modal-close" onclick="closeModal('addDeptModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Department Code *</label>
+                    <input type="text" class="form-input" id="adminDeptCode" placeholder="e.g. AI-DS, BIOTECH, ARCH" style="text-transform:uppercase;" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Full Department Name *</label>
+                    <input type="text" class="form-input" id="adminDeptName" placeholder="e.g. Artificial Intelligence & Data Science" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Department Coordinator / Head</label>
+                    <input type="text" class="form-input" id="adminDeptCoordinator" placeholder="e.g. Dr. Ramesh Kumar" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addDeptModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleAdminCreateDept()">Create Department</button>
             </div>
         </div>
     </div>

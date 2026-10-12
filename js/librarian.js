@@ -99,14 +99,14 @@ function lookupStudent() {
     const roll = document.getElementById('studentRoll').value;
     if (!roll) { showToast('Enter Roll Number', 'warning'); return; }
     document.getElementById('studentPreview').style.display = 'block';
-    showToast('Student found: Arya Das', 'success');
+    showToast('Student found: Deep Das', 'success');
 }
 
 function issueBook() {
     const isbn = document.getElementById('bookISBN').value;
     if (!isbn) { showToast('Enter book ISBN', 'warning'); return; }
     document.getElementById('issueConfirmModal').classList.add('open');
-    addAuditRow({ ts: new Date().toLocaleString(), action: 'BOOK_ISSUED', by: 'Kavita Patel', target: 'Arya Das (CS/2024/047)', detail: 'CLRS: ISBN 978-0262033848' });
+    addAuditRow({ ts: new Date().toLocaleString(), action: 'BOOK_ISSUED', by: 'Kavita Patel', target: 'Deep Das (CS/2024/047)', detail: 'CLRS: ISBN 978-0262033848' });
 }
 
 function processReturn() {
@@ -117,7 +117,7 @@ function processReturn() {
     resultContent.innerHTML = `
     <div style="text-align:center;margin-bottom:var(--sp-4)"><span style="font-size:48px">📥</span></div>
     <div class="issue-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)">
-      <div class="issue-detail-item"><div class="issue-detail-label">Student</div><div class="issue-detail-value">Arya Das</div></div>
+      <div class="issue-detail-item"><div class="issue-detail-label">Student</div><div class="issue-detail-value">Deep Das</div></div>
       <div class="issue-detail-item"><div class="issue-detail-label">Book</div><div class="issue-detail-value">CLRS Algorithms</div></div>
       <div class="issue-detail-item"><div class="issue-detail-label">Days Overdue</div><div class="issue-detail-value" style="color:var(--red)">3 days</div></div>
       <div class="issue-detail-item"><div class="issue-detail-label">Fine Due</div><div class="issue-detail-value" style="color:var(--red)">₹6.00</div></div>
@@ -127,12 +127,12 @@ function processReturn() {
       <button class="btn btn-secondary" onclick="showToast('Fine waived. Audit recorded.','info')">Waive Fine</button>
     </div>`;
     showToast('Book return processed', 'success');
-    addAuditRow({ ts: new Date().toLocaleString(), action: 'BOOK_RETURNED', by: 'Kavita Patel', target: 'Arya Das', detail: 'CLRS — Fine: ₹6' });
+    addAuditRow({ ts: new Date().toLocaleString(), action: 'BOOK_RETURNED', by: 'Kavita Patel', target: 'Deep Das', detail: 'CLRS — Fine: ₹6' });
 }
 
 // ── Issues Data ───────────────────────────────────────────────
 const issuesData = [
-    { student: 'Arya Das', roll: 'CS/2024/047', book: 'Introduction to Algorithms', issued: 'Feb 3, 2026', due: 'Feb 17, 2026', daysLeft: -3, fine: '₹6', status: 'overdue' },
+    { student: 'Deep Das', roll: 'CS/2024/047', book: 'Introduction to Algorithms', issued: 'Feb 3, 2026', due: 'Feb 17, 2026', daysLeft: -3, fine: '₹6', status: 'overdue' },
     { student: 'Rohan Verma', roll: 'EC/2024/112', book: 'Signals & Systems (Oppenheim)', issued: 'Feb 10, 2026', due: 'Feb 24, 2026', daysLeft: 4, fine: '₹0', status: 'ok' },
     { student: 'Sneha Joshi', roll: 'ME/2024/09', book: 'Engineering Thermodynamics', issued: 'Feb 5, 2026', due: 'Feb 19, 2026', daysLeft: -1, fine: '₹2', status: 'overdue' },
     { student: 'Amit Bose', roll: 'CS/2024/078', book: 'DBMS (Silberschatz)', issued: 'Feb 12, 2026', due: 'Feb 26, 2026', daysLeft: 6, fine: '₹0', status: 'ok' },
@@ -159,7 +159,7 @@ function filterIssues() { renderIssues(issuesData); }
 
 // ── Fines ─────────────────────────────────────────────────────
 const finesData = [
-    { student: 'Arya Das', roll: 'CS/2024/047', book: 'CLRS Algorithms', days: 3, amount: '₹6', status: 'unpaid' },
+    { student: 'Deep Das', roll: 'CS/2024/047', book: 'CLRS Algorithms', days: 3, amount: '₹6', status: 'unpaid' },
     { student: 'Kunal Shah', roll: 'CS/2024/055', book: 'Algorithm Design Manual', days: 5, amount: '₹10', status: 'unpaid' },
     { student: 'Sneha Joshi', roll: 'ME/2024/09', book: 'Engineering Thermodynamics', days: 1, amount: '₹2', status: 'unpaid' },
     { student: 'Rohan Verma', roll: 'EC/2024/112', book: 'Circuit Analysis', days: 8, amount: '₹16', status: 'paid' },
@@ -184,7 +184,7 @@ function renderFines() {
 
 // ── Reservations ──────────────────────────────────────────────
 const reservesData = [
-    { student: 'Arya Das', roll: 'CS/2024/047', book: 'The Pragmatic Programmer', reserved: 'Feb 19, 2026', expires: 'Feb 21, 2026', status: 'expiring' },
+    { student: 'Deep Das', roll: 'CS/2024/047', book: 'The Pragmatic Programmer', reserved: 'Feb 19, 2026', expires: 'Feb 21, 2026', status: 'expiring' },
     { student: 'Rohan Verma', roll: 'EC/2024/112', book: 'Digital Electronics (Morris Mano)', reserved: 'Feb 17, 2026', expires: 'Feb 19, 2026', status: 'expired' },
     { student: 'Priya Das', roll: 'IT/2024/033', book: 'Database Management (Ramakrishnan)', reserved: 'Feb 18, 2026', expires: 'Feb 22, 2026', status: 'active' },
 ];
@@ -229,7 +229,7 @@ function renderInventory() {
 
 // ── Audit Log ─────────────────────────────────────────────────
 const auditLog = [
-    { ts: '2026-02-20 09:15:32', action: 'BOOK_ISSUED', by: 'Kavita Patel', target: 'Arya Das', detail: 'CLRS → ACC-00847' },
+    { ts: '2026-02-20 09:15:32', action: 'BOOK_ISSUED', by: 'Kavita Patel', target: 'Deep Das', detail: 'CLRS → ACC-00847' },
     { ts: '2026-02-20 09:02:11', action: 'FINE_WAIVED', by: 'Kavita Patel', target: 'Priya Das (IT/2024/033)', detail: '₹8 waived — policy' },
     { ts: '2026-02-20 08:48:05', action: 'BOOK_RETURNED', by: 'Self-Service', target: 'Sneha Joshi', detail: 'CLRS returned — Fine: ₹6' },
     { ts: '2026-02-19 16:30:22', action: 'BOOK_ISSUED', by: 'Ravi Kumar', target: 'Amit Bose', detail: 'DBMS → ACC-01205' },

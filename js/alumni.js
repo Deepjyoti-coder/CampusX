@@ -78,7 +78,7 @@ function switchSubSessions(sub, btn) {
 
 // ── Data ──────────────────────────────────────────────────────
 const mentees = [
-    { initials: 'AD', name: 'Arya Das', degree: 'B.Tech CS — Year 3', jrs: 78, goals: ['System Design', 'DSA', 'Placement'], sessions: 8, nextSession: 'Feb 22, 2026', rating: 5.0, status: 'active' },
+    { initials: 'DD', name: 'Deep Das', degree: 'B.Tech CS — Year 3', jrs: 78, goals: ['System Design', 'DSA', 'Placement'], sessions: 8, nextSession: 'Feb 22, 2026', rating: 5.0, status: 'active' },
     { initials: 'RV', name: 'Rohan Verma', degree: 'B.Tech EC — Year 2', jrs: 61, goals: ['Python', 'ML Foundations'], sessions: 6, nextSession: 'Feb 25, 2026', rating: 4.8, status: 'active' },
     { initials: 'SJ', name: 'Sneha Joshi', degree: 'B.Tech ME — Year 4', jrs: 55, goals: ['MBA Prep', 'Resume Review'], sessions: 10, nextSession: 'Mar 1, 2026', rating: 5.0, status: 'active' },
 ];
@@ -119,10 +119,10 @@ function menteeCard(m) {
 
 // ── Sessions Data ─────────────────────────────────────────────
 const sessionsData = [
-    { mentee: 'Arya Das', date: 'Feb 22, 2026', time: '11:00 AM', duration: '30 min', status: 'upcoming', notes: 'LLD: URL Shortener', rating: null },
+    { mentee: 'Deep Das', date: 'Feb 22, 2026', time: '11:00 AM', duration: '30 min', status: 'upcoming', notes: 'LLD: URL Shortener', rating: null },
     { mentee: 'Rohan Verma', date: 'Feb 25, 2026', time: '10:00 AM', duration: '30 min', status: 'upcoming', notes: 'Python OOP Deep Dive', rating: null },
     { mentee: 'Sneha Joshi', date: 'Mar 1, 2026', time: '11:30 AM', duration: '45 min', status: 'upcoming', notes: 'MBA SOP Review', rating: null },
-    { mentee: 'Arya Das', date: 'Feb 15, 2026', time: '11:00 AM', duration: '30 min', status: 'completed', notes: 'Graph Algorithms', rating: '⭐⭐⭐⭐⭐' },
+    { mentee: 'Deep Das', date: 'Feb 15, 2026', time: '11:00 AM', duration: '30 min', status: 'completed', notes: 'Graph Algorithms', rating: '⭐⭐⭐⭐⭐' },
     { mentee: 'Rohan Verma', date: 'Feb 10, 2026', time: '10:00 AM', duration: '30 min', status: 'completed', notes: 'NumPy Basics', rating: '⭐⭐⭐⭐⭐' },
     { mentee: 'Sneha Joshi', date: 'Feb 8, 2026', time: '11:30 AM', duration: '45 min', status: 'completed', notes: 'Career roadmap', rating: '⭐⭐⭐⭐⭐' },
 ];
@@ -147,7 +147,7 @@ function renderSessions(upcoming = true) {
 
 // ── Referrals ─────────────────────────────────────────────────
 const referralsData = [
-    { candidate: 'Arya Das', company: 'Google India', role: 'SWE Intern 2026', referred: 'Feb 15, 2026', status: 'under_review', outcome: '—' },
+    { candidate: 'Deep Das', company: 'Google India', role: 'SWE Intern 2026', referred: 'Feb 15, 2026', status: 'under_review', outcome: '—' },
     { candidate: 'Rohan Verma', company: 'Microsoft', role: 'SWE Intern 2026', referred: 'Jan 22, 2026', status: 'offered', outcome: 'Offer ₹18 LPA' },
     { candidate: 'Sneha Joshi', company: 'Flipkart', role: 'PM Intern 2026', referred: 'Jan 8, 2026', status: 'offered', outcome: 'Offer ₹12 LPA' },
     { candidate: 'Amit Bose', company: 'Amazon', role: 'SDE Intern 2026', referred: 'Dec 10, 2025', status: 'declined', outcome: 'Position on hold' },

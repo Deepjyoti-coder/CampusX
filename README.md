@@ -38,7 +38,7 @@ Open **http://localhost:5000** in your browser.
 
 | Role      | Email                  | Password      |
 |-----------|------------------------|---------------|
-| Student   | arya@campus.edu        | password123   |
+| Student   | deep@campus.edu        | password123   |
 | Admin     | admin@campus.edu       | password123   |
 | Librarian | librarian@campus.edu   | password123   |
 | Alumni    | priya@alumni.edu       | password123   |

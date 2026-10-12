@@ -83,8 +83,23 @@ function switchTab(name, el) {
     const panel = document.getElementById('tab-' + name);
     if (panel) panel.classList.add('active');
     if (el) el.classList.add('active');
-    const titles = { home: 'Dashboard', library: 'SmartLib', career: 'Career Engine', mentorship: 'MentorNet', chat: 'Campus Assistant', connect: 'Student Connect', attendance: 'Attendance Tracking', notifications: 'Notifications' };
+    const titles = {
+        home: 'Dashboard',
+        updates: 'Campus Updates',
+        lostfound: 'Lost & Found',
+        library: 'SmartLib',
+        career: 'Career Engine',
+        mentorship: 'MentorNet',
+        chat: 'Campus Assistant',
+        connect: 'Student Connect',
+        attendance: 'Attendance Tracking',
+        notifications: 'Notification Center'
+    };
     document.getElementById('topbarTitle').textContent = titles[name] || 'CampusAI';
+
+    if (name === 'updates') loadCampusUpdates();
+    if (name === 'lostfound') loadLostFoundItems();
+    if (name === 'notifications') loadNotifications();
 }
 
 function switchSubTab(name, btn, groupClass) {
@@ -1113,6 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMentors();
     renderNotifications();
     renderAttendance();
+    loadNotifications();
 
     // animate progress bars
     setTimeout(() => {
@@ -1121,3 +1137,829 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 200);
 });
+
+// ══════════════════════════════════════════════════════════════
+//  MODULE 1: CAMPUS UPDATES (SMART NOTICES & EVENT MANAGEMENT)
+// ══════════════════════════════════════════════════════════════
+
+let campusNotices = [];
+let campusEvents = [];
+let activeNoticeFeedView = 'for_you';
+let activeEventFilter = 'all';
+let currentUpdatesSubTab = 'notices';
+
+function switchUpdatesSubTab(tab) {
+    currentUpdatesSubTab = tab;
+    const btnNotices = document.getElementById('btnSubtabNotices');
+    const btnEvents = document.getElementById('btnSubtabEvents');
+    const viewNotices = document.getElementById('updatesNoticesView');
+    const viewEvents = document.getElementById('updatesEventsView');
+
+    if (tab === 'notices') {
+        if (btnNotices) btnNotices.classList.add('active');
+        if (btnEvents) btnEvents.classList.remove('active');
+        if (viewNotices) viewNotices.style.display = 'block';
+        if (viewEvents) viewEvents.style.display = 'none';
+    } else {
+        if (btnEvents) btnEvents.classList.add('active');
+        if (btnNotices) btnNotices.classList.remove('active');
+        if (viewNotices) viewNotices.style.display = 'none';
+        if (viewEvents) viewEvents.style.display = 'block';
+    }
+}
+
+async function loadCampusUpdates() {
+    try {
+        // Fetch notices with personalized view
+        const noticeRes = await api.get(`/notices?view=${activeNoticeFeedView}`);
+        if (noticeRes.success) {
+            campusNotices = noticeRes.data || [];
+            renderNotices(campusNotices);
+        }
+
+        // Fetch events
+        const eventRes = await api.get('/events?upcoming=true');
+        if (eventRes.success) {
+            campusEvents = eventRes.data || [];
+            renderEvents(campusEvents);
+        }
+
+        // Update stats banner
+        const activeNoticesEl = document.getElementById('statActiveNotices');
+        const upcomingEventsEl = document.getElementById('statUpcomingEvents');
+        const deadlinesCountEl = document.getElementById('statDeadlinesCount');
+        const deptUpdatesEl = document.getElementById('statDeptUpdates');
+
+        if (activeNoticesEl) activeNoticesEl.textContent = campusNotices.length;
+        if (upcomingEventsEl) upcomingEventsEl.textContent = campusEvents.length;
+
+        const deadlines = campusEvents.filter(e => e.registrationDeadline && new Date(e.registrationDeadline) > new Date()).length;
+        if (deadlinesCountEl) deadlinesCountEl.textContent = deadlines;
+
+        const studentDept = currentStudentUser.department || 'Computer Science';
+        const deptNotices = campusNotices.filter(n => (n.departments || []).includes(studentDept) || (n.departments || []).includes('Computer Science and Engineering')).length;
+        if (deptUpdatesEl) deptUpdatesEl.textContent = `${deptNotices} in ${studentDept.slice(0, 16)}`;
+
+        const subTitleEl = document.getElementById('updatesSubtitle');
+        if (subTitleEl) {
+            subTitleEl.textContent = `Personalized for ${currentStudentUser.name || 'Deep'} (${studentDept} · Year ${currentStudentUser.year || 3})`;
+        }
+    } catch (err) {
+        console.error('Error loading campus updates:', err);
+    }
+}
+
+function selectNoticeFeedView(view, btn) {
+    activeNoticeFeedView = view;
+    document.querySelectorAll('[data-view]').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadCampusUpdates();
+}
+
+function handleNoticeSearch() {
+    filterNotices();
+}
+
+function filterNotices() {
+    const term = (document.getElementById('noticeSearchInput')?.value || '').toLowerCase().trim();
+    const dept = document.getElementById('noticeDeptFilter')?.value || 'All';
+    const cat = document.getElementById('noticeCategoryFilter')?.value || 'All';
+    const priority = document.getElementById('noticePriorityFilter')?.value || 'All';
+
+    const filtered = campusNotices.filter(n => {
+        const matchesTerm = !term ||
+            (n.title && n.title.toLowerCase().includes(term)) ||
+            (n.content && n.content.toLowerCase().includes(term)) ||
+            (n.publishingDepartment && n.publishingDepartment.toLowerCase().includes(term));
+
+        const matchesDept = dept === 'All' ||
+            (n.departments && (n.departments.includes(dept) || n.departments.includes('University-wide') || n.departments.includes('All Departments')));
+
+        const matchesCat = cat === 'All' || n.category === cat;
+        const matchesPriority = priority === 'All' || n.priority === priority;
+
+        return matchesTerm && matchesDept && matchesCat && matchesPriority;
+    });
+
+    renderNotices(filtered);
+}
+
+function renderNotices(list = []) {
+    const grid = document.getElementById('noticeGrid');
+    const bannerContainer = document.getElementById('pinnedNoticeBannerContainer');
+    if (!grid) return;
+
+    const pinnedNotice = list.find(n => n.pinned || n.priority === 'urgent');
+    if (pinnedNotice && bannerContainer) {
+        bannerContainer.innerHTML = `
+            <div class="pinned-banner">
+                <div class="flex items-center gap-3">
+                    <span class="pinned-badge">PINNED</span>
+                    <div>
+                        <div class="fw-700 text-navy" style="font-size:var(--text-base)">${pinnedNotice.title}</div>
+                        <div class="text-xs text-gray" style="margin-top:2px">
+                            ${pinnedNotice.publishingDepartment} · Published ${formatTimeAgo(pinnedNotice.publishedAt)}
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openNoticeModal('${pinnedNotice._id}')">Read Notice →</button>
+            </div>
+        `;
+    } else if (bannerContainer) {
+        bannerContainer.innerHTML = '';
+    }
+
+    if (list.length === 0) {
+        grid.innerHTML = `
+            <div class="card col-12" style="text-align:center;padding:var(--sp-8);grid-column:1/-1">
+                <div style="font-size:36px;margin-bottom:var(--sp-2)">📭</div>
+                <h4 style="color:var(--navy);margin-bottom:var(--sp-1)">No notices found</h4>
+                <p class="text-sm text-gray">Try adjusting your department or category filters</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = list.map(n => {
+        const deptLabel = (n.departments && n.departments.length) ? n.departments[0] : 'University-wide';
+        const isUrgent = n.priority === 'urgent';
+        const isHigh = n.priority === 'high';
+        const priorityClass = isUrgent ? 'urgent' : isHigh ? 'high' : 'normal';
+
+        return `
+            <div class="notice-card ${priorityClass}">
+                ${!n.isRead ? '<span class="unread-indicator-dot" title="Unread Notice"></span>' : ''}
+                <div>
+                    <div class="notice-meta-top">
+                        <span class="dept-pill">${escapeHTML(deptLabel)}</span>
+                        <span class="priority-tag ${priorityClass}">${n.priority}</span>
+                    </div>
+                    <h3 class="notice-title">${escapeHTML(n.title)}</h3>
+                    <p class="notice-snippet">${escapeHTML((n.content || '').slice(0, 140))}...</p>
+                </div>
+                <div>
+                    ${n.attachments?.length ? `<div style="margin-bottom:var(--sp-2)"><span class="badge badge-blue text-xs">📎 ${n.attachments[0].name || 'Document'}</span></div>` : ''}
+                    <div class="notice-footer">
+                        <span>${formatTimeAgo(n.publishedAt || n.createdAt)}</span>
+                        <div class="flex gap-2">
+                            <button class="icon-btn" style="width:28px;height:28px" title="Bookmark" onclick="toggleNoticeBookmark('${n._id}', this)">
+                                ${n.isSaved ? '🔖' : '📑'}
+                            </button>
+                            <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:3px 10px" onclick="openNoticeModal('${n._id}')">
+                                Read More
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function openNoticeModal(id) {
+    try {
+        const res = await api.get(`/notices/${id}`);
+        if (!res.success || !res.data) return;
+        const n = res.data;
+
+        document.getElementById('ndModalTitle').textContent = n.title;
+        const body = document.getElementById('ndModalBody');
+        body.innerHTML = `
+            <div class="flex items-center gap-2" style="margin-bottom:var(--sp-3);flex-wrap:wrap">
+                <span class="badge ${n.priority === 'urgent' ? 'badge-red' : 'badge-blue'}">${n.priority.toUpperCase()}</span>
+                <span class="badge badge-purple">${escapeHTML(n.category)}</span>
+                <span class="badge badge-teal">${escapeHTML(n.publishingDepartment || 'Administration')}</span>
+                <span class="text-xs text-gray ml-auto">Published: ${new Date(n.publishedAt).toLocaleDateString()}</span>
+            </div>
+            <div style="font-size:var(--text-sm);color:var(--navy);line-height:1.7;white-space:pre-wrap;margin-bottom:var(--sp-4)">
+                ${escapeHTML(n.content)}
+            </div>
+            ${n.eligibleYears?.length ? `<div class="text-xs text-gray" style="margin-bottom:var(--sp-2)"><strong>Target Audience:</strong> Year ${n.eligibleYears.join(', ')} Students</div>` : ''}
+            ${n.registrationLink ? `<div style="margin-top:var(--sp-3)"><a href="${escapeHTML(n.registrationLink)}" target="_blank" class="btn btn-primary btn-sm">🔗 Open Registration / Portal Link</a></div>` : ''}
+            ${n.attachments?.length ? `
+                <div style="margin-top:var(--sp-3)">
+                    <div class="text-xs fw-700 text-gray" style="margin-bottom:6px">ATTACHMENTS:</div>
+                    ${n.attachments.map(a => `<div class="card" style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between"><span>📄 ${escapeHTML(a.name)}</span><span class="badge badge-blue">Download</span></div>`).join('')}
+                </div>
+            ` : ''}
+        `;
+
+        document.getElementById('ndModalFooter').innerHTML = `
+            <button class="btn btn-secondary" onclick="closeModal('noticeDetailsModal')">Close</button>
+            <button class="btn btn-primary" onclick="toggleNoticeBookmark('${n._id}');closeModal('noticeDetailsModal')">
+                ${(n.savedBy || []).includes(currentStudentUser._id) ? 'Remove Bookmark' : 'Bookmark Notice'}
+            </button>
+        `;
+
+        showModal('noticeDetailsModal');
+
+        const local = campusNotices.find(item => item._id === id);
+        if (local) local.isRead = true;
+        renderNotices(campusNotices);
+    } catch (err) {
+        console.error('Error opening notice modal:', err);
+    }
+}
+
+async function toggleNoticeBookmark(id) {
+    try {
+        const res = await api.post(`/notices/${id}/bookmark`, {});
+        if (res.success) {
+            showToast(res.message, 'success');
+            const item = campusNotices.find(n => n._id === id);
+            if (item) item.isSaved = res.isSaved;
+            renderNotices(campusNotices);
+        }
+    } catch (err) {
+        showToast('Failed to bookmark notice', 'error');
+    }
+}
+
+// ── Events Section ─────────────────────────────────────────────
+function selectEventFilter(filter, btn) {
+    activeEventFilter = filter;
+    document.querySelectorAll('[data-event-filter]').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    if (filter === 'all') {
+        renderEvents(campusEvents);
+    } else if (filter === 'registered') {
+        renderEvents(campusEvents.filter(e => e.isRegistered));
+    } else if (filter === 'saved') {
+        renderEvents(campusEvents.filter(e => e.isSaved));
+    } else {
+        renderEvents(campusEvents.filter(e => e.category === filter));
+    }
+}
+
+function renderEvents(list = []) {
+    const grid = document.getElementById('eventGrid');
+    if (!grid) return;
+
+    if (list.length === 0) {
+        grid.innerHTML = `
+            <div class="card col-12" style="text-align:center;padding:var(--sp-8);grid-column:1/-1">
+                <div style="font-size:36px;margin-bottom:var(--sp-2)">🎟️</div>
+                <h4 style="color:var(--navy);margin-bottom:var(--sp-1)">No events in this view</h4>
+                <p class="text-sm text-gray">Explore All Upcoming Events to view schedules</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = list.map(e => {
+        const stateClass = e.isRegistered ? 'registered' :
+            e.computedState === 'Registration Open' ? 'open' :
+            e.computedState === 'Registration Closing Soon' ? 'closing' :
+            e.computedState === 'Fully Booked' ? 'full' :
+            e.computedState === 'Cancelled' ? 'cancelled' : 'completed';
+
+        const activeRegs = e.activeRegistrationsCount || 0;
+        const capacity = e.capacityLimit || 100;
+        const capPct = Math.min(Math.round((activeRegs / capacity) * 100), 100);
+
+        return `
+            <div class="event-card">
+                <div class="event-poster-header" style="background:${e.posterGradient || 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)'}">
+                    <div class="event-poster-top">
+                        <span class="event-category-badge">${e.icon || '📅'} ${escapeHTML(e.category)}</span>
+                        <span class="event-state-pill ${stateClass}">${e.isRegistered ? '✓ Registered' : e.computedState}</span>
+                    </div>
+                    <div class="text-xs" style="opacity:0.9">🏛️ ${escapeHTML(e.organizingDepartment)}</div>
+                </div>
+                <div class="event-body">
+                    <h3 class="event-name">${escapeHTML(e.title)}</h3>
+                    <div class="event-info-row">
+                        <span>📅</span>
+                        <span>${new Date(e.eventDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} · ${e.startTime}</span>
+                    </div>
+                    <div class="event-info-row">
+                        <span>📍</span>
+                        <span>${escapeHTML(e.venue)}</span>
+                    </div>
+
+                    ${e.capacityLimit > 0 ? `
+                        <div class="event-capacity-wrap">
+                            <div class="flex justify-between text-xs text-gray">
+                                <span>Capacity: <strong>${activeRegs} / ${e.capacityLimit}</strong></span>
+                                <span>${capPct}% filled</span>
+                            </div>
+                            <div class="event-cap-bar">
+                                <div class="event-cap-fill" style="width:${capPct}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <p class="text-xs text-gray" style="line-height:1.4;margin:var(--sp-2) 0;flex-grow:1">
+                        ${escapeHTML((e.description || '').slice(0, 110))}...
+                    </p>
+
+                    <div class="flex gap-2" style="margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--gray-100)">
+                        ${e.isRegistered ? `
+                            <button class="btn btn-secondary btn-sm" style="flex:1" onclick="cancelEventRegistration('${e._id}')">Cancel RSVP</button>
+                        ` : (e.computedState === 'Registration Open' || e.computedState === 'Registration Closing Soon') ? `
+                            <button class="btn btn-primary btn-sm" style="flex:1" onclick="registerForEvent('${e._id}')">🎟️ Register</button>
+                        ` : `
+                            <button class="btn btn-secondary btn-sm" style="flex:1" disabled>${e.computedState}</button>
+                        `}
+                        <a href="/api/events/${e._id}/calendar.ics" download="event-${e._id}.ics" class="btn btn-secondary btn-sm" title="Add to Calendar">
+                            📅 iCal
+                        </a>
+                        <button class="btn btn-secondary btn-sm" onclick="openEventModal('${e._id}')">Details</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function registerForEvent(id) {
+    try {
+        const res = await api.post(`/events/${id}/register`, {});
+        if (res.success) {
+            showToast('Registered successfully! Confirmation sent.', 'success');
+            loadCampusUpdates();
+            loadNotifications();
+        } else {
+            showToast(res.message || 'Registration failed', 'error');
+        }
+    } catch (err) {
+        showToast('Registration failed', 'error');
+    }
+}
+
+async function cancelEventRegistration(id) {
+    if (!confirm('Cancel your registration for this event?')) return;
+    try {
+        const res = await api.post(`/events/${id}/cancel-registration`, {});
+        if (res.success) {
+            showToast('Registration cancelled', 'info');
+            loadCampusUpdates();
+        } else {
+            showToast(res.message || 'Error cancelling', 'error');
+        }
+    } catch (err) {
+        showToast('Error cancelling registration', 'error');
+    }
+}
+
+async function openEventModal(id) {
+    try {
+        const res = await api.get(`/events/${id}`);
+        if (!res.success || !res.data) return;
+        const e = res.data;
+
+        document.getElementById('edModalTitle').textContent = e.title;
+        document.getElementById('edModalBody').innerHTML = `
+            <div class="flex items-center gap-2" style="margin-bottom:var(--sp-3);flex-wrap:wrap">
+                <span class="badge badge-blue">${escapeHTML(e.category)}</span>
+                <span class="badge badge-purple">${escapeHTML(e.organizingDepartment)}</span>
+                <span class="badge badge-teal">${e.computedState}</span>
+            </div>
+            <div style="font-size:var(--text-sm);color:var(--navy);line-height:1.6;margin-bottom:var(--sp-4)">
+                ${escapeHTML(e.description)}
+            </div>
+            <div class="grid grid-2" style="gap:var(--sp-3);background:var(--gray-50);padding:var(--sp-3);border-radius:var(--radius-md);margin-bottom:var(--sp-4)">
+                <div><strong>📅 Date:</strong> ${new Date(e.eventDate).toLocaleDateString()} (${e.startTime} - ${e.endTime})</div>
+                <div><strong>📍 Venue:</strong> ${escapeHTML(e.venue)}</div>
+                <div><strong>👤 Organizer:</strong> ${escapeHTML(e.organizerName || 'Coordinator')}</div>
+                <div><strong>👥 Eligibility:</strong> ${escapeHTML(e.eligibilityCriteria || 'All Students')}</div>
+            </div>
+            ${e.onlineMeetingLink ? `<div style="margin-bottom:var(--sp-3)"><strong>Meeting Link:</strong> <a href="${escapeHTML(e.onlineMeetingLink)}" target="_blank">${escapeHTML(e.onlineMeetingLink)}</a></div>` : ''}
+        `;
+
+        document.getElementById('edModalFooter').innerHTML = `
+            <button class="btn btn-secondary" onclick="closeModal('eventDetailsModal')">Close</button>
+            <a href="/api/events/${e._id}/calendar.ics" download="event.ics" class="btn btn-secondary">Download .ics</a>
+            ${e.isRegistered ? `<button class="btn btn-secondary" onclick="cancelEventRegistration('${e._id}');closeModal('eventDetailsModal')">Cancel RSVP</button>` : `<button class="btn btn-primary" onclick="registerForEvent('${e._id}');closeModal('eventDetailsModal')">Register Now</button>`}
+        `;
+
+        showModal('eventDetailsModal');
+    } catch (err) {
+        console.error('Error opening event modal:', err);
+    }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  MODULE 2: AI-POWERED LOST & FOUND
+// ══════════════════════════════════════════════════════════════
+
+function selectLFTypeFilter(type, btn) {
+    activeLFType = type;
+    document.querySelectorAll('[data-lf-type]').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadLostFoundItems();
+}
+
+function handleLFSearch() {
+    filterLFItems();
+}
+
+async function loadLostFoundItems() {
+    try {
+        let url = '/lostfound?';
+        if (activeLFType === 'lost' || activeLFType === 'found') {
+            url += `type=${activeLFType}&`;
+        } else if (activeLFType === 'my_reports') {
+            url += 'my_reports=true&';
+        }
+
+        const res = await api.get(url);
+        if (res.success) {
+            lfItemsList = res.data || [];
+            renderLFItems(lfItemsList);
+        }
+    } catch (err) {
+        console.error('Error loading lost found items:', err);
+    }
+}
+
+function filterLFItems() {
+    const term = (document.getElementById('lfSearchInput')?.value || '').toLowerCase().trim();
+    const cat = document.getElementById('lfCategoryFilter')?.value || 'All Categories';
+    const loc = (document.getElementById('lfLocationFilter')?.value || '').toLowerCase().trim();
+    const status = document.getElementById('lfStatusFilter')?.value || 'All';
+
+    const filtered = lfItemsList.filter(item => {
+        const matchesTerm = !term ||
+            (item.name && item.name.toLowerCase().includes(term)) ||
+            (item.description && item.description.toLowerCase().includes(term)) ||
+            (item.location && item.location.toLowerCase().includes(term)) ||
+            (item.color && item.color.toLowerCase().includes(term));
+
+        const matchesCat = cat === 'All Categories' || item.category === cat;
+        const matchesLoc = !loc || (item.location && item.location.toLowerCase().includes(loc));
+        const matchesStatus = status === 'All' || item.status === status;
+
+        return matchesTerm && matchesCat && matchesLoc && matchesStatus;
+    });
+
+    renderLFItems(filtered);
+}
+
+function renderLFItems(items = []) {
+    const grid = document.getElementById('lfGrid');
+    if (!grid) return;
+
+    if (items.length === 0) {
+        grid.innerHTML = `
+            <div class="card col-12" style="text-align:center;padding:var(--sp-8);grid-column:1/-1">
+                <div style="font-size:36px;margin-bottom:var(--sp-2)">📦</div>
+                <h4 style="color:var(--navy);margin-bottom:var(--sp-1)">No items match your criteria</h4>
+                <p class="text-sm text-gray">Search other campus zones or report a lost/found item</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = items.map(item => {
+        const isLost = item.type === 'lost';
+        const isMatchFound = item.status === 'potential_match';
+        const isResolved = item.status === 'returned' || item.status === 'resolved';
+
+        return `
+            <div class="lf-card">
+                <div class="lf-card-header">
+                    <div class="flex items-center gap-2">
+                        <span style="font-size:24px">${item.icon || (isLost ? '🔍' : '✨')}</span>
+                        <div>
+                            <span class="lf-type-pill ${isLost ? 'lost' : 'found'}">${isLost ? 'LOST' : 'FOUND'}</span>
+                            <span class="badge ${isResolved ? 'badge-teal' : isMatchFound ? 'badge-purple' : 'badge-gray'}" style="margin-left:4px;font-size:10px">
+                                ${isMatchFound ? '⚡ AI Match Detected' : item.status}
+                            </span>
+                        </div>
+                    </div>
+                    ${item.color ? `<span class="badge badge-gray text-xs">🎨 ${escapeHTML(item.color)}</span>` : ''}
+                </div>
+
+                <h3 style="font-size:var(--text-base);font-weight:700;color:var(--navy);margin-bottom:var(--sp-2)">
+                    ${escapeHTML(item.name)}
+                </h3>
+
+                <div class="text-xs text-gray" style="margin-bottom:4px">
+                    📍 <strong>Location:</strong> ${escapeHTML(item.location || 'Campus')}
+                </div>
+                <div class="text-xs text-gray" style="margin-bottom:var(--sp-2)">
+                    🕒 <strong>When:</strong> ${new Date(item.dateOccurred).toLocaleDateString()} ${item.timeApprox ? `(${escapeHTML(item.timeApprox)})` : ''}
+                </div>
+
+                <p class="text-xs text-gray" style="line-height:1.45;flex-grow:1;margin-bottom:var(--sp-3)">
+                    ${escapeHTML((item.description || '').slice(0, 130))}
+                </p>
+
+                ${item.holdingLocation ? `
+                    <div style="margin-bottom:var(--sp-3)">
+                        <span class="badge ${item.handedToSecurity ? 'badge-teal' : 'badge-blue'}" style="font-size:11px">
+                            ${item.handedToSecurity ? '🛡️ Held at Security Desk' : `🏢 ${escapeHTML(item.holdingLocation)}`}
+                        </span>
+                    </div>
+                ` : ''}
+
+                <div class="flex gap-2" style="padding-top:var(--sp-3);border-top:1px solid var(--gray-100)">
+                    <button class="btn btn-secondary btn-sm" style="flex:1" onclick="checkMatches('${item._id}')">
+                        ⚡ AI Matches
+                    </button>
+                    ${!isResolved ? `
+                        <button class="btn btn-primary btn-sm" onclick="openClaimModal('${item._id}', '${escapeHTML(item.name)}')">
+                            Claim Item
+                        </button>
+                    ` : `
+                        <button class="btn btn-secondary btn-sm" disabled>Returned</button>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function checkMatches(itemId) {
+    try {
+        const res = await api.get(`/lostfound/${itemId}/matches`);
+        if (!res.success) return;
+
+        const body = document.getElementById('aiMatchesModalBody');
+        const matches = res.matches || [];
+
+        if (matches.length === 0) {
+            body.innerHTML = `
+                <div style="text-align:center;padding:var(--sp-6)">
+                    <div style="font-size:40px;margin-bottom:var(--sp-2)">🔍</div>
+                    <h4 style="color:var(--navy)">No potential matches found yet</h4>
+                    <p class="text-sm text-gray">CampusAI continuously compares incoming reports. You will be alerted as soon as a matching item is recorded.</p>
+                </div>
+            `;
+        } else {
+            body.innerHTML = `
+                <div style="margin-bottom:var(--sp-4);background:var(--blue-muted);padding:var(--sp-3);border-radius:var(--radius-md)">
+                    <strong style="color:var(--navy)">AI Matching Engine Analysis:</strong>
+                    Scored ${matches.length} candidate reports using 3-stage semantic clustering, weighted keyword vectors, and date/location proximity.
+                </div>
+                <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+                    ${matches.map(m => {
+                        const item = m.item;
+                        const score = m.score;
+                        const strengthBadge = score >= 75 ? 'badge-teal' : score >= 50 ? 'badge-blue' : 'badge-amber';
+
+                        return `
+                            <div class="card" style="padding:var(--sp-4);border:1px solid var(--gray-200)">
+                                <div class="flex items-center justify-between" style="margin-bottom:var(--sp-2)">
+                                    <div class="flex items-center gap-2">
+                                        <span class="match-score-badge">⚡ ${score}% Match</span>
+                                        <span class="badge ${strengthBadge}">${m.strength}</span>
+                                    </div>
+                                    <span class="lf-type-pill ${item.type === 'lost' ? 'lost' : 'found'}">${item.type.toUpperCase()}</span>
+                                </div>
+
+                                <h4 style="color:var(--navy);font-weight:700;margin-bottom:4px">${escapeHTML(item.name)}</h4>
+                                <div class="text-xs text-gray" style="margin-bottom:var(--sp-2)">
+                                    📍 <strong>Found At:</strong> ${escapeHTML(item.location)} · <strong>Date:</strong> ${new Date(item.dateOccurred).toLocaleDateString()}
+                                </div>
+                                <p class="text-xs text-gray" style="line-height:1.45;margin-bottom:var(--sp-3)">
+                                    ${escapeHTML(item.description)}
+                                </p>
+
+                                <div class="flex flex-wrap gap-1" style="margin-bottom:var(--sp-3)">
+                                    ${(m.traits || []).map(t => `<span class="badge badge-purple" style="font-size:10px">✓ ${escapeHTML(t)}</span>`).join('')}
+                                </div>
+
+                                <div class="flex justify-between items-center" style="padding-top:var(--sp-2);border-top:1px solid var(--gray-100)">
+                                    <span class="text-xs text-gray">${item.holdingLocation ? `Holding: ${escapeHTML(item.holdingLocation)}` : ''}</span>
+                                    <button class="btn btn-primary btn-sm" onclick="closeModal('aiMatchesModal');openClaimModal('${item._id}', '${escapeHTML(item.name)}')">
+                                        Verify & Claim Item →
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        showModal('aiMatchesModal');
+    } catch (err) {
+        showToast('Error evaluating AI matches', 'error');
+    }
+}
+
+function openReportModal(type) {
+    const today = new Date().toISOString().split('T')[0];
+    if (type === 'lost') {
+        const dateInput = document.getElementById('lostItemDate');
+        if (dateInput) dateInput.value = today;
+        showModal('reportLostModal');
+    } else {
+        const dateInput = document.getElementById('foundItemDate');
+        if (dateInput) dateInput.value = today;
+        showModal('reportFoundModal');
+    }
+}
+
+async function submitLostReport(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitLost');
+    if (btn) btn.disabled = true;
+
+    try {
+        const payload = {
+            name: document.getElementById('lostItemName').value,
+            type: 'lost',
+            category: document.getElementById('lostItemCategory').value,
+            color: document.getElementById('lostItemColor').value,
+            dateOccurred: document.getElementById('lostItemDate').value,
+            timeApprox: document.getElementById('lostItemTime').value,
+            location: document.getElementById('lostItemLocation').value,
+            description: document.getElementById('lostItemDesc').value,
+            contactPreference: document.getElementById('lostItemContactPref').value
+        };
+
+        const res = await api.post('/lostfound', payload);
+        if (res.success) {
+            showToast('Lost item report submitted! AI matching active.', 'success');
+            closeModal('reportLostModal');
+            document.getElementById('reportLostForm').reset();
+            loadLostFoundItems();
+            loadNotifications();
+        } else {
+            showToast(res.message || 'Submission error', 'error');
+        }
+    } catch (err) {
+        showToast('Error submitting report', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function submitFoundReport(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitFound');
+    if (btn) btn.disabled = true;
+
+    try {
+        const payload = {
+            name: document.getElementById('foundItemName').value,
+            type: 'found',
+            category: document.getElementById('foundItemCategory').value,
+            color: document.getElementById('foundItemColor').value,
+            dateOccurred: document.getElementById('foundItemDate').value,
+            location: document.getElementById('foundItemLocation').value,
+            description: document.getElementById('foundItemDesc').value,
+            holdingLocation: document.getElementById('foundHoldingLocation').value,
+            handedToSecurity: document.getElementById('foundHandedToSecurity').checked
+        };
+
+        const res = await api.post('/lostfound', payload);
+        if (res.success) {
+            showToast('Found item reported! Thank you for helping peers.', 'success');
+            closeModal('reportFoundModal');
+            document.getElementById('reportFoundForm').reset();
+            loadLostFoundItems();
+        } else {
+            showToast(res.message || 'Submission error', 'error');
+        }
+    } catch (err) {
+        showToast('Error submitting report', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function openClaimModal(id, title) {
+    document.getElementById('claimItemId').value = id;
+    document.getElementById('claimItemTitleDisplay').value = title;
+    document.getElementById('claimProofDetails').value = '';
+    document.getElementById('claimContactInfo').value = currentStudentUser.email || '';
+    showModal('claimItemModal');
+}
+
+async function submitItemClaim(e) {
+    e.preventDefault();
+    const id = document.getElementById('claimItemId').value;
+    const btn = document.getElementById('btnSubmitClaim');
+    if (btn) btn.disabled = true;
+
+    try {
+        const payload = {
+            proofDetails: document.getElementById('claimProofDetails').value,
+            contactInfo: document.getElementById('claimContactInfo').value
+        };
+
+        const res = await api.post(`/lostfound/${id}/claim`, payload);
+        if (res.success) {
+            showToast('Ownership claim submitted! Security & finder notified.', 'success');
+            closeModal('claimItemModal');
+            loadLostFoundItems();
+        } else {
+            showToast(res.message || 'Claim error', 'error');
+        }
+    } catch (err) {
+        showToast('Error submitting claim', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  NOTIFICATION CENTER
+// ══════════════════════════════════════════════════════════════
+
+async function loadNotifications() {
+    try {
+        const res = await api.get('/notifications');
+        if (!res.success) return;
+
+        const notifs = res.data || [];
+        const unreadCount = res.unreadCount || 0;
+
+        const updatesBadge = document.getElementById('navUpdatesBadge');
+        if (updatesBadge) {
+            updatesBadge.textContent = unreadCount > 0 ? unreadCount : 'New';
+            updatesBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+        }
+
+        const notifListEl = document.getElementById('notifList');
+        if (!notifListEl) return;
+
+        if (notifs.length === 0) {
+            notifListEl.innerHTML = `
+                <div style="text-align:center;padding:var(--sp-6)">
+                    <div style="font-size:36px;margin-bottom:var(--sp-2)">🔔</div>
+                    <div class="fw-600 text-navy">No notifications</div>
+                    <div class="text-xs text-gray">You're completely up to date!</div>
+                </div>
+            `;
+            return;
+        }
+
+        notifListEl.innerHTML = notifs.map(n => {
+            const icon = n.type === 'notice' ? '📢' : n.type === 'event' ? '🎟️' : n.type === 'lostfound' ? '⚡' : '🛡️';
+            return `
+                <div class="flex items-start gap-3" style="padding:var(--sp-3);border-bottom:1px solid var(--gray-100);background:${n.read ? 'white' : '#F0F9FF'};border-radius:var(--radius-md);margin-bottom:4px">
+                    <span style="font-size:20px">${icon}</span>
+                    <div style="flex-grow:1;cursor:pointer" onclick="handleNotificationClick('${n.linkTab || 'updates'}', '${n.targetId || ''}', '${n._id}')">
+                        <div class="fw-700 text-navy text-sm">${escapeHTML(n.title)}</div>
+                        <div class="text-xs text-gray" style="margin:2px 0 4px">${escapeHTML(n.message)}</div>
+                        <span class="text-xs text-gray">${formatTimeAgo(n.createdAt)}</span>
+                    </div>
+                    ${!n.read ? `
+                        <button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 6px" onclick="markNotificationRead('${n._id}')">
+                            Mark Read
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Error loading notifications:', err);
+    }
+}
+
+async function markNotificationRead(id) {
+    try {
+        await api.post(`/notifications/${id}/read`, {});
+        loadNotifications();
+    } catch (err) {
+        console.error('Error marking read:', err);
+    }
+}
+
+async function markAllNotificationsAsRead() {
+    try {
+        await api.post('/notifications/read-all', {});
+        showToast('All notifications marked as read', 'success');
+        loadNotifications();
+    } catch (err) {
+        showToast('Error updating notifications', 'error');
+    }
+}
+
+function handleNotificationClick(tab, targetId, notifId) {
+    if (notifId) markNotificationRead(notifId);
+    if (tab === 'updates') {
+        switchTab('updates', document.getElementById('navUpdates'));
+        if (targetId) openNoticeModal(targetId);
+    } else if (tab === 'lostfound') {
+        switchTab('lostfound', document.getElementById('navLostFound'));
+        if (targetId) checkMatches(targetId);
+    }
+}
+
+function formatTimeAgo(dateString) {
+    if (!dateString) return '';
+    const diff = Math.floor((Date.now() - new Date(dateString)) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}

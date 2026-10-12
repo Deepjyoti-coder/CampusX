@@ -10,7 +10,7 @@ const AUTH_API_ORIGIN = globalThis.CAMPUSAI_API_ORIGIN
     || (globalThis.location.port === '5000' ? globalThis.location.origin : 'http://localhost:5000');
 
 const DEMO_CREDENTIALS = {
-    student: { email: 'arya@campus.edu' },
+    student: { email: 'deep@campus.edu' },
     librarian: { email: 'librarian@campus.edu' },
     admin: { email: 'admin@campus.edu' },
     alumni: { email: 'priya@alumni.edu' }

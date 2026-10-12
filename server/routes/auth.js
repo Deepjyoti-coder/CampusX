@@ -48,6 +48,8 @@ const authPayload = (user) => ({
     role: user.role,
     avatar: user.avatar,
     department: user.department,
+    year: user.year || 1,
+    skills: user.skills || [],
     authProvider: user.authProvider
 });
 

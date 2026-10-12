@@ -4,19 +4,36 @@ const Book = require('../models/Book');
 const Borrow = require('../models/Borrow');
 const Attendance = require('../models/Attendance');
 const Notice = require('../models/Notice');
+const Event = require('../models/Event');
+const LostFound = require('../models/LostFound');
+const Department = require('../models/Department');
+const AuditLog = require('../models/AuditLog');
 const { protect, authorise } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/admin/stats — live dashboard metrics
 router.get('/stats', protect, authorise('admin'), async (req, res) => {
     try {
-        const [totalStudents, totalAlumni, totalBooks, activeLoans, overdueLoans, totalNotices] = await Promise.all([
+        const [
+            totalStudents,
+            totalAlumni,
+            totalBooks,
+            activeLoans,
+            overdueLoans,
+            totalNotices,
+            totalEvents,
+            totalLostFound,
+            totalDepartments
+        ] = await Promise.all([
             User.countDocuments({ role: 'student' }),
             User.countDocuments({ role: 'alumni' }),
             Book.countDocuments(),
             Borrow.countDocuments({ status: 'active' }),
             Borrow.countDocuments({ status: 'overdue' }),
-            Notice.countDocuments(),
+            Notice.countDocuments({ status: 'published' }),
+            Event.countDocuments({ status: 'published' }),
+            LostFound.countDocuments({ 'moderation.hidden': { $ne: true } }),
+            Department.countDocuments({ isActive: true })
         ]);
 
         // Overall attendance percentage
@@ -27,14 +44,35 @@ router.get('/stats', protect, authorise('admin'), async (req, res) => {
 
         res.json({
             success: true,
-            data: { totalStudents, totalAlumni, totalBooks, activeLoans, overdueLoans, totalNotices, attendancePct }
+            data: {
+                totalStudents,
+                totalAlumni,
+                totalBooks,
+                activeLoans,
+                overdueLoans,
+                totalNotices,
+                totalEvents,
+                totalLostFound,
+                totalDepartments,
+                attendancePct
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// GET /api/admin/users — list all users (with optional role filter)
+// GET /api/admin/audit-logs — audit logs list
+router.get('/audit-logs', protect, authorise('admin'), async (req, res) => {
+    try {
+        const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(50);
+        res.json({ success: true, count: logs.length, data: logs });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET /api/admin/users — list all users
 router.get('/users', protect, authorise('admin'), async (req, res) => {
     try {
         const { role } = req.query;
@@ -46,7 +84,7 @@ router.get('/users', protect, authorise('admin'), async (req, res) => {
     }
 });
 
-// PUT /api/admin/users/:id — admin update user (e.g. change role)
+// PUT /api/admin/users/:id — admin update user
 router.put('/users/:id', protect, authorise('admin'), async (req, res) => {
     try {
         const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
